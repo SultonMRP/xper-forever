@@ -1,4 +1,7 @@
 SLASH_EXPR1 = "/x"
+SLASH_XSWIM1 = "/xs"
+
+local BASE_SWIM_PCT = 67.46
 
 local function say(msg)
     if SendSystemMessage then
@@ -25,6 +28,53 @@ local function formatTemp(n)
         return tostring(math.floor(r))
     end
     return string.format("%.1f", r)
+end
+
+local function formatPct(n)
+    local r = math.floor(n * 100 + 0.5) / 100
+    if r == math.floor(r) then
+        return tostring(math.floor(r))
+    end
+    local tenths = math.floor(n * 10 + 0.5) / 10
+    if math.abs(r - tenths) < 0.001 then
+        return string.format("%.1f", tenths)
+    end
+    return string.format("%.2f", r)
+end
+
+local function trySwim(expr)
+    local bonuses = {}
+    for token in expr:gmatch("[^,;%s]+") do
+        if not token:match("^[+-]?%d+%.?%d*$") and not token:match("^[+-]?%.%d+$") then
+            return false
+        end
+        local n = tonumber(token)
+        if not n then
+            return false
+        end
+        bonuses[#bonuses + 1] = n
+    end
+    if #bonuses == 0 then
+        return false
+    end
+
+    local total = 0
+    for i = 1, #bonuses do
+        total = total + bonuses[i]
+    end
+    local mul = 1 + total / 100
+    local ofGround = BASE_SWIM_PCT * mul
+    local vsRun
+    local delta = ofGround - 100
+    if math.abs(delta) < 0.005 then
+        vsRun = "same as base running speed"
+    elseif delta > 0 then
+        vsRun = formatPct(delta) .. "% faster than base running speed"
+    else
+        vsRun = formatPct(-delta) .. "% slower than base running speed"
+    end
+    say("Swim bonus: " .. formatPct(total) .. "% of swim (" .. formatPct(BASE_SWIM_PCT) .. " × " .. formatPct(mul) .. ", " .. vsRun .. ")")
+    return true
 end
 
 local function tryTemp(expr)
@@ -72,6 +122,7 @@ function SlashCmdList.EXPR(expr)
     if expr == "" then
         say("/x <expr> - evaluates an expression and prints the result in the chat window.")
         say("/x 5x5 - same as 5*5. /x 15c or /x 15f converts temperature.")
+        say("/xs 30,15,10 - swim speed from item bonuses (base 67.46% of ground).")
         return
     end
 
@@ -92,4 +143,17 @@ function SlashCmdList.EXPR(expr)
     end
 
     say(expr .. " = " .. tostring(result))
+end
+
+function SlashCmdList.XSWIM(expr)
+    if not expr or expr == "" or expr:match("^%s*$") then
+        say("/xs <bonuses> - swim speed from item swim bonus percents.")
+        say("Base swim is 67.46% of ground speed. Bonuses stack additively.")
+        say("Example: /xs 30,15,10 -> Swim bonus: 55% of swim (67.46 × 1.55, 4.56% faster than base running speed)")
+        return
+    end
+
+    if not trySwim(expr) then
+        say("Invalid input. Example: /xs 30,15,10")
+    end
 end

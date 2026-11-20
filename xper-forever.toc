@@ -1,8 +1,8 @@
 ## Interface: 16001
 ## AllowLoadGameType: camelot
 ## Title: xper-forever
-## Notes: /x <expr> evaluates an expression. /x 15c and /x 15f convert temperature.
-## Version: 1.2
+## Notes: /x <expr> evaluates an expression. /xs 30,15,10 calculates swim speed from item bonuses.
+## Version: 1.3
 ## X-Compatible-With: forever
 
 main.lua
